@@ -16,6 +16,10 @@ public class UserDeleteTest extends BaseTestCase {
     private final ApiCoreRequests apiCoreRequests = new ApiCoreRequests();
 
     @Test
+    @Owner(value = "Elena Kopylova")
+    @TmsLink(value = "UW-13")
+    @Story("Недопустимое удаление пользователя")
+    @Severity(value = SeverityLevel.CRITICAL)
     @Description("This test check status code and answer for delete user 2 with role admin")
     @DisplayName("Test negative delete amin user")
 
@@ -44,6 +48,10 @@ public class UserDeleteTest extends BaseTestCase {
     }
 
     @Test
+    @Owner(value = "Elena Kopylova")
+    @TmsLink(value = "UW-14")
+    @Story("Успешное удаление пользователя")
+    @Severity(value = SeverityLevel.CRITICAL)
     @Description("This test successfully delete user with user's auth cookie and token")
     @DisplayName("Test positive delete user with user's auth params")
 
@@ -93,7 +101,11 @@ public class UserDeleteTest extends BaseTestCase {
     }
 
     @Test
-
+    @Owner(value = "Elena Kopylova")
+    @TmsLink(value = "UW-15")
+    @Issue(value = "DU-1")
+    @Story("Недопустимое удаление пользователя")
+    @Severity(value = SeverityLevel.CRITICAL)
     @Description("This test check status code and answer for delete user with auth cookie and token for other user.")
     @DisplayName("Test negative delete user with other user's auth")
 
