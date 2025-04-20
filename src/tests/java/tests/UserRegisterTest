@@ -1,87 +1,119 @@
 package tests;
 
-
+import io.qameta.allure.*;
 import io.restassured.response.Response;
-import lib.Assertions;
-import lib.BaseTestCase;
-import org.junit.jupiter.api.BeforeEach;
+import lib.*;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Tags;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import io.qameta.allure.Description;
-import io.qameta.allure.Epic;
-import io.qameta.allure.Feature;
 import org.junit.jupiter.api.DisplayName;
-import lib.ApiCoreRequests;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 
-
-@Epic("Authorisation cases")
-@Feature("Authorisation")
-public class UserAuthTest extends BaseTestCase {
-
-    String cookie;
-    String header;
-    int userIdOnAuth;
+@Epic("Registration cases")
+@Feature("Registration")
+public class UserRegisterTest extends BaseTestCase {
     private final ApiCoreRequests apiCoreRequests = new ApiCoreRequests();
 
+    @Test
+    @Description("This test successfully register new user with correct user data.")
+    @DisplayName("Test positive register new user")
+   
+    public void testCreateUserSuccessfully() {
+        Map<String, String> userData = DataGenerator.getRegistrationData();
 
-    @BeforeEach
-    public void loginUser(){
-        Map<String, String> authData = new HashMap<>();
-        authData.put("email", "vinkotov@example.com");
-        authData.put("password", "1234");
+        Response responseCreateUser = apiCoreRequests
+                .makePostCreateRequest(RequestSettings.registrationUrl, userData);
 
-        Response responseGetAuth = apiCoreRequests
-                .makePostCreateRequest("https://playground.learnqa.ru/api/user/login", authData);
-
-        this.cookie = this.getCookie(responseGetAuth,"auth_sid");
-        this.header = this.getHeader(responseGetAuth, "x-csrf-token");
-        this.userIdOnAuth = this.getIntFromJson(responseGetAuth, "user_id");
-
+        Assertions.assertResponseCodeEquals(responseCreateUser, 200);
+        Assertions.assertJsonHasField(responseCreateUser, "id");
     }
-
 
     @Test
-    @Description("This test successfully authorises user by email and password")
-    @DisplayName("Test positive auth user")
-    public void testAuthUser(){
-        //растащили responseGetAuth на три переменные: cokies, headers, userIdOnAuth
+   
+    @Description("This test check status code and answer for registration existing user.")
+    @DisplayName("Test negative register existing user")
+    
+    public void testCreateUserWithExistingEmail() {
+        String email = "vinkotov@example.com";
 
-        Response responseCheckAuth = apiCoreRequests
-                .makeGetRequest(
-                        "https://playground.learnqa.ru/api/user/auth",
-                        this.header,
-                        this.cookie
-                );
+        Map<String, String> userData = new HashMap<>();
+        userData.put("email", email);
+        userData = DataGenerator.getRegistrationData(userData);
 
-        Assertions.assertJsonByName(responseCheckAuth, "user_id", this.userIdOnAuth);
+        Response responseCreateUser = apiCoreRequests
+                .makePostCreateRequest(RequestSettings.registrationUrl, userData);
 
+        Assertions.assertResponseCodeEquals(responseCreateUser, 400);
+        Assertions.assertResponseTextEquals(responseCreateUser,
+                "Users with email '" + email + "' already exists");
     }
 
-    @Description("This test checks authorisation status w/o sending auth cookie or token")
-    @DisplayName("Test negative auth user")
-    @ParameterizedTest
-    @ValueSource(strings = {"cookie", "headers"})
-    public void testNegativeAuthUser(String condition){
-        if (condition.equals("cookie")){
-            Response responseForCheck = apiCoreRequests.makeGetRequestWithCookie(
-                    "https://playground.learnqa.ru/api/user/auth",
-                    this.cookie
-            );
-            Assertions.assertJsonByName(responseForCheck, "user_id", 0);
-        } else if (condition.equals("headers")){
-            Response responseForCheck = apiCoreRequests.makeGetRequestWithToken(
-                    "https://playground.learnqa.ru/api/user/auth",
-                    this.header
-            );
-            Assertions.assertJsonByName(responseForCheck, "user_id", 0);
-        } else{
-            throw new IllegalArgumentException("Condition value is not known: " + condition);
-        }
+    @Test
+    @Description("This test check status code and answer for registration user with uncorrect email.")
+    @DisplayName("Test negative register user with uncorrect email")
+    
+    public void testCreateUserWithUncorrectEmail() {
+        String email = DataGenerator.getRandomEmail().replace("@", "");
 
+        Map<String, String> userData = new HashMap<>();
+        userData.put("email", email);
+        userData = DataGenerator.getRegistrationData(userData);
+
+        Response responseCreateUser = apiCoreRequests
+                .makePostCreateRequest(RequestSettings.registrationUrl, userData);
+
+        Assertions.assertResponseCodeEquals(responseCreateUser, 400);
+        Assertions.assertResponseHtmlTextEquals(responseCreateUser,
+                "Invalid email format");
+    }
+
+    @Description("This test check status code and answer for registration user without required fields.")
+    @DisplayName("Test negative register user without required field")
+    @ParameterizedTest(name = "{displayName} - {0}")
+    @ValueSource(strings={"email", "password", "username", "firstName", "lastName"})
+    
+    public void testCreateUserWithoutRequiredFields(String field) {
+        Allure.parameter("required field", field);
+
+        Map<String, String> userData = DataGenerator.getRegistrationData();
+        userData.remove(field);
+
+        Response responseCreateUser = apiCoreRequests
+                .makePostCreateRequest(RequestSettings.registrationUrl, userData);
+
+        Assertions.assertResponseCodeEquals(responseCreateUser, 400);
+        Assertions.assertResponseHtmlTextEquals(responseCreateUser,
+                "The following required params are missed: " + field);
+    }
+
+    @Description("This test check status code and answer for registration user with uncorrect user name.")
+    @DisplayName("Test negative register user with uncorrect user name")
+    @ParameterizedTest(name = "{displayName} - with {1} symbols in {0}")
+    @CsvSource({"username, 1, short", "username, 251, long", "firstName, 1, short", "firstName, 251, long",
+            "lastName, 1, short", "lastName, 251, long"})
+    
+    public void testCreateUserWithUncorrectName(String field, int stringSize, String expectedResult) {
+        Allure.parameter("field", field);
+        Allure.parameter("symbols quantity", stringSize);
+        Allure.parameter("expected value for name", expectedResult);
+
+        String uncorrectName = DataGenerator.getRandomString(stringSize);
+
+        Map<String, String> userData = new HashMap<>();
+        userData.put(field, uncorrectName);
+        userData = DataGenerator.getRegistrationData(userData);
+
+        Response responseCreateUser = apiCoreRequests
+                .makePostCreateRequest(RequestSettings.registrationUrl, userData);
+
+        Assertions.assertResponseCodeEquals(responseCreateUser, 400);
+        Assertions.assertResponseHtmlTextEquals(responseCreateUser,
+                "The value of '" + field + "' field is too " + expectedResult);
     }
 }
