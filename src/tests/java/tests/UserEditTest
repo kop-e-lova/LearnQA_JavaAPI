@@ -174,10 +174,10 @@ public class UserEditTest extends BaseTestCase {
     }
 
     @Test
-    @Description("This test check status code and answer for change user's email to uncorrect email.")
-    @DisplayName("Test negative edit user data with uncorrect email")
+    @Description("This test check status code and answer for change user's email to incorrect email.")
+    @DisplayName("Test negative edit user data with incorrect email")
 
-    public void testEditUserDataWithUncorrectEmail() {
+    public void testEditUserDataWithIncorrectEmail() {
         //CREATE USER
         Map<String, String> userData = DataGenerator.getRegistrationData();
 
@@ -217,12 +217,12 @@ public class UserEditTest extends BaseTestCase {
     }
 
 
-    @Description("This test check status code and answer for edit user data with uncorrect name with 1 symbol.")
-    @DisplayName("Test negative edit user data with uncorrect name")
+    @Description("This test check status code and answer for edit user data with incorrect name with 1 symbol.")
+    @DisplayName("Test negative edit user data with incorrect name")
     @ParameterizedTest(name = "{displayName} in {0}")
     @ValueSource(strings = {"username", "firstName", "lastName"})
 
-    public void testEditUserDataWithUncorrectName(String field) {
+    public void testEditUserDataWithIncorrectName(String field) {
         Allure.parameter("testing field", field);
 
         //CREATE USER
